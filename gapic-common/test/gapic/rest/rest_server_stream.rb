@@ -35,20 +35,9 @@ class RestServerStreamTest < Minitest::Test
       ]
     ]
 
-    fake_service_stub = FakeReGapicServiceStub.new(*api_responses)
-    request = Gapic::Examples::GoodPagedRequest.new
-    response = Gapic::Examples::GoodPagedResponse.new(
-      users:           [
-      ],
-      next_page_token: "next"
+    rest_stream_enum = Gapic::Rest::ServerStream.new(
+      api_responses
     )
-
-    options = {}
-
-    rest_paged_enum = Gapic::Rest::PagedEnumerable.new(
-      fake_service_stub, :call_rest, "users", request, response, options
-    )
-
-    assert_equal %w[foo bar baz bif], rest_paged_enum.each.map(&:name)
+    assert_equal %w[foo bar baz bif], rest_stream_enum.each.map(&:name)
   end
 end

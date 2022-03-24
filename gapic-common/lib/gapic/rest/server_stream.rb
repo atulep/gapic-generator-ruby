@@ -38,7 +38,7 @@ module Gapic
       end
 
       def next_body!
-        @body = bodies.pop
+        @body = bodies.shift
       end
 
       ##
