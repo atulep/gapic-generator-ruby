@@ -14,6 +14,7 @@
 
 module Gapic
   module Rest
+
     def use_server_stream
       ss = ServerStream.new 
 
@@ -31,14 +32,53 @@ module Gapic
       # @return Enumerable<Enumberable<Object>>
       attr_reader :bodies
 
-      # @param bodies Enumerable<Enumberable<Object>>
+      # @param bodies Enumerable<String>
       def initialize bodies
         @bodies = bodies
-        next_body!
+        @_level = 0
+        @_obj = ""
+        @_ready_objs = []
       end
 
-      def next_body!
-        @body = bodies.shift
+      def next_json!
+        for body in @bodies
+          for char in body.split("")
+            if char == "{"
+              if @_level == 1
+                @_obj = ""
+              end
+              if not @_in_string
+                @_level += 1
+              end
+              @_obj += char
+            elsif char == "}"
+              @_obj += char
+              if not @_in_string
+                @_level -= 1
+              end
+              if not @_in_string and @_level == 1
+                @_ready_objs.append(@_obj)
+              end
+            elsif char == '"'
+              @_in_string = !@_in_string
+              @_obj += char
+            elsif char == "["
+              if @_level == 0
+                @_level += 1
+              else
+                @_obj += char
+              end
+            elsif char == "]"
+              if @_level == 1
+                @_level -= 1
+              else
+                @_obj += char
+              end
+            else
+              @_obj += char
+            end
+          end
+        end
       end
 
       ##
@@ -50,10 +90,11 @@ module Gapic
       #
       def each &block
         return enum_for :each unless block_given?
-
-        each_body do |body|
-          body.each(&block)
+        loop do
+          break if @_ready_objs.length > 0
+          next_json!
         end
+        yield @_ready_objs.shift
       end
 
       private
@@ -64,10 +105,10 @@ module Gapic
       #
       def each_body
         loop do
-          break if @body.nil?
-          yield @body
-          next_body!
+          break if @_ready_objs.length > 0
+          next_json!
         end
+        yield @_ready_objs.shift
       end
     end
   end

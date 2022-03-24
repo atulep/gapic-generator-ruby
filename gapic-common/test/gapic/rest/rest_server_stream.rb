@@ -24,20 +24,16 @@ class RestServerStreamTest < Minitest::Test
   # Tests that a `ServerStream` can enumerate all resources via `each`
   #
   def test_enumerates_all_resources
-    api_responses = [
-      [
-        Gapic::Examples::User.new(name: "foo"),
-        Gapic::Examples::User.new(name: "bar")
-      ],
-      [
-        Gapic::Examples::User.new(name: "baz"),
-        Gapic::Examples::User.new(name: "bif")
-      ]
+    stream = [
+      "[",
+      "{",
+      "\"foo\":1",
+      "}",
+      "]"
     ]
-
     rest_stream_enum = Gapic::Rest::ServerStream.new(
-      api_responses
+      stream
     )
-    assert_equal %w[foo bar baz bif], rest_stream_enum.each.map(&:name)
+    assert_equal "{\"foo\":1}", rest_stream_enum.first
   end
 end
