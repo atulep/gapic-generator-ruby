@@ -46,7 +46,7 @@ class FaradayE2ETest < Minitest::Test
         req.options.on_data = Proc.new do |chunk, overall_received_bytes|
             puts "Received #{overall_received_bytes} characters"
             streamed << chunk
-            #sleep(3)
+            # sleep(3)
             puts chunk
             #Enumerable.add_chunk(chunk)
         end

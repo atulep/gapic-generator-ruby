@@ -41,6 +41,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "googleauth", ">= 0.17.0", "< 2.a"
   spec.add_dependency "google-protobuf", "~> 3.14"
   spec.add_dependency "grpc", "~> 1.36"
+  spec.add_dependency "http"
 
   spec.add_development_dependency "google-cloud-core", "~> 1.5"
   spec.add_development_dependency "google-style", "~> 1.25.1"
@@ -52,4 +53,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", ">= 12.0"
   spec.add_development_dependency "redcarpet", "~> 3.0"
   spec.add_development_dependency "yard", "~> 0.9"
+
 end
