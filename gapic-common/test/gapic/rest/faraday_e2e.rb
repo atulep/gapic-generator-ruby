@@ -19,6 +19,7 @@ require "test_helper"
 require "faraday"
 require "pp"
 require 'pry'
+require "googleauth"
 
 ##
 # Tests for the REST paged enumerables
@@ -28,10 +29,11 @@ class FaradayE2ETest < Minitest::Test
   # Tests that a `ServerStream` can enumerate all resources via `each`
   #
   def test_enumerates_all_resources
-    endpoint = "https://firestore.googleapis.com/v1/projects/its-april/databases/(default)/documents:runQuery"
+    endpoint = "https://firestore.googleapis.com/v1/projects/client-debugging/databases/(default)/documents:runQuery"
 
     conn = Faraday.new url: @endpoint do |conn|
         conn.headers = { "Content-Type" => "application/json" }
+        conn.request :google_authorization,  ::Google::Auth::Credentials.default
         conn.request :retry
         conn.response :raise_error
         conn.adapter :net_http
@@ -40,23 +42,76 @@ class FaradayE2ETest < Minitest::Test
     # A buffer to store the streamed data
     streamed = []
 
-    res = conn.post(endpoint, "{structuredQuery:{from:{collectionId:'large'}}}") do |req|
+    request = <<-JSON 
+    { parent: "projects/client-debugging/databases/(default)/documents",
+      structuredQuery: {
+        endAt: {
+          before: true,
+          values: [{
+            referenceValue: "projects/client-debugging/databases/(default)/documents/node_5.0.2_0KwCDFyz5uZYxCg3QWPh/VZkD7W3eKKQU11aVufpx"
+          }]
+        },
+        from: [{
+          allDescendants: true,
+          collectionId: "node_5.0.2_0KwCDFyz5uZYxCg3QWPh",
+        }],
+        orderBy: [{
+          direction: 'ASCENDING',
+          field: {
+            fieldPath: '__name__'
+          }
+        }],
+      }
+    }
+    JSON
+    # # old = "{structuredQuery:{from:{collectionId:'large'}}}"
+    # conn.post(endpoint, request) do |req|
+    #   # Set a callback which will receive tuples of chunk Strings
+    #   # and the sum of characters received so far
+    #   req.options.on_data = Proc.new do |chunk, overall_received_bytes|
+    #       puts "Received #{overall_received_bytes} characters"
+    #       streamed << chunk
+    #       #sleep(3)
+    #       pp "@@@Chunk in conn:"
+    #       pp chunk
+    #       # Fiber.yield chunk
+    #       #Enumerable.add_chunk(chunk)
+    #   end
+    # end
+
+
+    fiber = Fiber.new do 
+      # old = "{structuredQuery:{from:{collectionId:'large'}}}"
+      conn.post(endpoint, request) do |req|
         # Set a callback which will receive tuples of chunk Strings
         # and the sum of characters received so far
         req.options.on_data = Proc.new do |chunk, overall_received_bytes|
             puts "Received #{overall_received_bytes} characters"
             streamed << chunk
-            # sleep(3)
-            puts chunk
+            #sleep(3)
+            # pp "@@@Chunk in conn:"
+            # pp chunk
+            Fiber.yield chunk
             #Enumerable.add_chunk(chunk)
         end
+      end
     end
     #binding.pry
     puts "---------"
-    pp res
+    begin
+      while true
+        chunk = fiber.resume
+        puts "@@@Chunk="
+        pp chunk
+      end
+    rescue FiberError
+      puts "fiber ends."
+    end
     puts "---------"
-    # Joins all response chunks together
-    streamed.join
+    streamed.each do |chunk|
+      pp chunk.length
+    end
+    pp streamed.count
   end
 end
 
